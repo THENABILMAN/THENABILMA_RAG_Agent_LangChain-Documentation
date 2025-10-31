@@ -285,7 +285,7 @@ with st.sidebar:
     if st.button("🗑️ Clear Chat History", use_container_width=True, type="secondary"):
         st.session_state.messages = []
         st.session_state.chat_history = []
-        st.success("Chat history cleared!", icon="✓")
+        st.success("Chat history cleared!", icon="✅")
         st.rerun()
     
     st.divider()
