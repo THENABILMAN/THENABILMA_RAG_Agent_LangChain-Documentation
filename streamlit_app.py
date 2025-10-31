@@ -6,14 +6,16 @@ from dotenv import load_dotenv
 import streamlit as st
 
 # LangChain imports
-from langchain_ollama import OllamaEmbeddings
+from langchain_ollama import OllamaEmbeddings, OllamaLLM
 from langchain_community.vectorstores import Chroma
 from langchain_community.tools.tavily_search import TavilySearchResults
+from langchain_core.prompts import PromptTemplate
 
 load_dotenv()
 
 OLLAMA_BASE_URL = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434")
 OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "mxbai-embed-large")
+OLLAMA_LLM_MODEL = os.environ.get("OLLAMA_LLM_MODEL", "llama3.2")
 TAVILY_API_KEY = os.environ.get("TAVILY_API_KEY", "")
 
 # Config
@@ -35,6 +37,16 @@ def load_vectordb():
     )
     return vectordb
 
+@st.cache_resource
+def load_llm():
+    """Load the Ollama LLM for answer generation."""
+    llm = OllamaLLM(
+        base_url=OLLAMA_BASE_URL,
+        model=OLLAMA_LLM_MODEL,
+        temperature=0.7
+    )
+    return llm
+
 # Load the vector database
 try:
     vectordb = load_vectordb()
@@ -44,10 +56,19 @@ except Exception as e:
     st.info("Please run `python build_index.py` first to create the index.")
     st.stop()
 
+# Load the LLM
+try:
+    llm = load_llm()
+    st.success(f"✅ LLM loaded successfully! ({OLLAMA_LLM_MODEL})")
+except Exception as e:
+    st.error(f"❌ Error loading LLM: {e}")
+    st.info("Make sure Ollama is running and the model is available.")
+    st.stop()
+
 # Sidebar for settings
 with st.sidebar:
     st.header("⚙️ Settings")
-    k = st.slider("Number of results to retrieve:", 1, 10, 4)
+    k = st.slider("Number of results to retrieve:", 1, 15, 6)
     search_mode = st.selectbox(
         "Search Mode:",
         ["Local Documentation", "Web Search + Documentation"]
@@ -61,9 +82,14 @@ with st.sidebar:
 
 # Main search interface
 st.subheader("🔍 Search LangChain Documentation")
-query = st.text_input("Enter your question about LangChain:")
 
-if query:
+col1, col2 = st.columns([4, 1])
+with col1:
+    query = st.text_input("Enter your question about LangChain:")
+with col2:
+    search_button = st.button("🔍 Search", use_container_width=True)
+
+if (query and search_button) or (query and st.session_state.get("auto_search")):
     try:
         results = []
         
@@ -95,6 +121,32 @@ if query:
                     st.divider()
             except Exception as e:
                 st.warning(f"Web search unavailable: {str(e)}")
+        
+        # Generate Answer using LLM
+        if local_results:
+            st.subheader("💡 Generated Answer")
+            with st.spinner("Generating answer..."):
+                # Prepare context from retrieved documents
+                context = "\n\n".join([doc.page_content for doc in local_results])
+                
+                # Create a prompt for the LLM
+                prompt = f"""Based on the following documentation context, answer the question concisely and accurately.
+
+Context:
+{context}
+
+Question: {query}
+
+Answer:"""
+                
+                try:
+                    # Generate answer using Ollama LLM
+                    answer = llm.invoke(prompt)
+                    st.markdown(answer)
+                except Exception as e:
+                    st.error(f"Error generating answer: {str(e)}")
+            
+            st.divider()
         
         # Display Local Results
         if local_results:
