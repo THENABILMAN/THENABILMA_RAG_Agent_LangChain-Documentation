@@ -243,7 +243,7 @@ Answer:"""
         st.error(f"❌ Error during search: {e}")
 
 st.divider()
-st.caption("Powered by LangChain, Chroma, and OpenRouter")
+st.caption("Powered by LangChain, Pinecone, HuggingFace, and OpenRouter")
 
 # Display Scrollable Chat History
 if st.session_state.chat_history:
