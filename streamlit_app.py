@@ -13,7 +13,7 @@ from pinecone import Pinecone
 load_dotenv()
 
 TAVILY_API_KEY = os.environ.get("TAVILY_API_KEY", "")
-OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY", "")
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
 PINECONE_API_KEY = os.environ.get("PINECONE_API_KEY", "")
 PINECONE_INDEX_NAME = os.environ.get("PINECONE_INDEX_NAME", "langchain-docs")
 
@@ -40,71 +40,77 @@ st.markdown("""
         max-width: 900px;
     }
     .header-container {
-        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #7e22ce 100%);
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #3f0f64 100%);
         padding: 2rem;
         border-radius: 10px;
         color: white;
         margin-bottom: 2rem;
         text-align: center;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
     }
     .header-container h1 {
         margin: 0;
         font-size: 2.5rem;
         font-weight: 700;
+        color: #ffffff;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.3);
     }
     .header-container p {
         margin: 0.5rem 0 0 0;
-        opacity: 0.95;
+        opacity: 1;
         font-size: 1.1rem;
+        color: #e2e8f0;
     }
     .message-container {
         margin-bottom: 1.5rem;
         padding: 1.2rem;
         border-radius: 12px;
         animation: fadeIn 0.3s ease-in;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
     }
     .user-message {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
+        background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
+        color: #ffffff;
         margin-left: 2rem;
-        border-left: 4px solid #667eea;
+        border-left: 4px solid #3b82f6;
     }
     .user-message strong {
         display: block;
         margin-bottom: 0.5rem;
         font-size: 0.9rem;
-        opacity: 0.9;
+        opacity: 1;
+        color: #e0e7ff;
     }
     .assistant-message {
-        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-        color: white;
+        background: linear-gradient(135deg, #7c2d12 0%, #5a1410 100%);
+        color: #ffffff;
         margin-right: 2rem;
-        border-left: 4px solid #f5576c;
+        border-left: 4px solid #ea580c;
         line-height: 1.6;
     }
     .assistant-message strong {
         display: block;
         margin-bottom: 0.5rem;
         font-size: 0.9rem;
-        opacity: 0.9;
+        opacity: 1;
+        color: #fed7aa;
     }
     .source-container {
-        background: #f0f2f6;
-        border-left: 4px solid #7e22ce;
+        background: #1e293b;
+        border-left: 4px solid #6d28d9;
         padding: 1rem;
         border-radius: 8px;
         margin-top: 1rem;
         font-size: 0.9rem;
+        color: #e2e8f0;
     }
     .source-title {
         font-weight: 600;
-        color: #1e3c72;
+        color: #a78bfa;
         margin-bottom: 0.5rem;
     }
     .stat-box {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
         color: white;
         padding: 1rem;
         border-radius: 8px;
@@ -114,10 +120,12 @@ st.markdown("""
     .stat-number {
         font-size: 2rem;
         font-weight: 700;
+        color: #ffffff;
     }
     .stat-label {
         font-size: 0.85rem;
-        opacity: 0.9;
+        opacity: 1;
+        color: #bfdbfe;
     }
     @keyframes fadeIn {
         from { opacity: 0; transform: translateY(10px); }
@@ -146,16 +154,16 @@ def load_vectordb():
 
 @st.cache_resource
 def load_llm():
-    """Load the LLM from OpenRouter."""
-    if not OPENROUTER_API_KEY:
-        st.error("❌ OPENROUTER_API_KEY not set!")
-        st.info("Add your OpenRouter API key to .env file")
+    """Load the LLM from Groq."""
+    if not GROQ_API_KEY:
+        st.error("❌ GROQ_API_KEY not set!")
+        st.info("Add your Groq API key to .env file")
         st.stop()
     
     llm = ChatOpenAI(
-        model="meta-llama/llama-3.2-3b-instruct:free",
-        api_key=OPENROUTER_API_KEY,
-        base_url="https://openrouter.ai/api/v1",
+        model="llama-3.3-70b-versatile",
+        api_key=GROQ_API_KEY,
+        base_url="https://api.groq.com/openai/v1",
         temperature=0.7
     )
     return llm
@@ -206,28 +214,54 @@ with st.sidebar:
     # System status with detailed info
     st.subheader("📊 System Status")
     
-    status_cols = st.columns(2)
-    with status_cols[0]:
+    # Add animation CSS
+    st.markdown("""
+    <style>
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.15); opacity: 0.8; }
+        }
+    </style>
+    """, unsafe_allow_html=True)
+    
+    # Create status boxes
+    col1, col2 = st.columns(2)
+    
+    with col1:
         if PINECONE_API_KEY:
             st.markdown("""
-                <div class="stat-box">
-                    <div class="stat-number">✅</div>
-                    <div class="stat-label">Pinecone</div>
-                </div>
+            <div style="background: linear-gradient(135deg, #065f46 0%, #047857 100%); padding: 1.5rem; border-radius: 12px; text-align: center; color: white; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4); border: 2px solid rgba(255,255,255,0.3);">
+                <div style="font-size: 2.5rem; margin-bottom: 0.8rem;">✅</div>
+                <div style="font-size: 1rem; font-weight: 700; margin-bottom: 0.3rem; color: #ffffff;">Pinecone</div>
+                <div style="font-size: 0.85rem; opacity: 1; background: rgba(255,255,255,0.15); padding: 0.4rem 0.8rem; border-radius: 6px; margin-top: 0.5rem; color: #d1fae5;">🟢 Connected</div>
+            </div>
             """, unsafe_allow_html=True)
         else:
-            st.error("❌ Pinecone", icon=None)
-    
-    with status_cols[1]:
-        if OPENROUTER_API_KEY:
             st.markdown("""
-                <div class="stat-box">
-                    <div class="stat-number">✅</div>
-                    <div class="stat-label">LLM</div>
-                </div>
+            <div style="background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%); padding: 1.5rem; border-radius: 12px; text-align: center; color: white; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4); border: 2px solid rgba(255,255,255,0.3);">
+                <div style="font-size: 2.5rem; margin-bottom: 0.8rem;">❌</div>
+                <div style="font-size: 1rem; font-weight: 700; margin-bottom: 0.3rem; color: #ffffff;">Pinecone</div>
+                <div style="font-size: 0.85rem; opacity: 1; background: rgba(255,255,255,0.15); padding: 0.4rem 0.8rem; border-radius: 6px; margin-top: 0.5rem; color: #fecaca;">🔴 Disconnected</div>
+            </div>
+            """, unsafe_allow_html=True)
+    
+    with col2:
+        if GROQ_API_KEY:
+            st.markdown("""
+            <div style="background: linear-gradient(135deg, #065f46 0%, #047857 100%); padding: 1.5rem; border-radius: 12px; text-align: center; color: white; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4); border: 2px solid rgba(255,255,255,0.3);">
+                <div style="font-size: 2.5rem; margin-bottom: 0.8rem;">✅</div>
+                <div style="font-size: 1rem; font-weight: 700; margin-bottom: 0.3rem; color: #ffffff;">Groq LLM</div>
+                <div style="font-size: 0.85rem; opacity: 1; background: rgba(255,255,255,0.15); padding: 0.4rem 0.8rem; border-radius: 6px; margin-top: 0.5rem; color: #d1fae5;">🟢 Ready</div>
+            </div>
             """, unsafe_allow_html=True)
         else:
-            st.error("❌ OpenRouter")
+            st.markdown("""
+            <div style="background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%); padding: 1.5rem; border-radius: 12px; text-align: center; color: white; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4); border: 2px solid rgba(255,255,255,0.3);">
+                <div style="font-size: 2.5rem; margin-bottom: 0.8rem;">❌</div>
+                <div style="font-size: 1rem; font-weight: 700; margin-bottom: 0.3rem; color: #ffffff;">Groq LLM</div>
+                <div style="font-size: 0.85rem; opacity: 1; background: rgba(255,255,255,0.15); padding: 0.4rem 0.8rem; border-radius: 6px; margin-top: 0.5rem; color: #fecaca;">🔴 Not Ready</div>
+            </div>
+            """, unsafe_allow_html=True)
     
     st.divider()
     
@@ -274,7 +308,7 @@ with st.sidebar:
         **🛠️ Tech Stack:**
         - **Vector DB:** Pinecone (cloud)
         - **Embeddings:** HuggingFace (sentence-transformers)
-        - **LLM:** OpenRouter (Llama 3.2 3B)
+        - **LLM:** Groq (Llama 3.3 70B)
         - **Framework:** Streamlit + LangChain
         
         **🚀 How It Works:**
@@ -297,7 +331,7 @@ with st.sidebar:
 # Main Header
 st.markdown("""
     <div class="header-container">
-        <h1>� RAG Assistant</h1>
+        <h1>📚 Langchain Doc Assistant</h1>
         <p>Ask anything about LangChain documentation</p>
     </div>
 """, unsafe_allow_html=True)
@@ -407,9 +441,9 @@ Answer:"""
             try:
                 # Generate answer using LLM
                 llm_with_temp = ChatOpenAI(
-                    model="meta-llama/llama-3.2-3b-instruct:free",
-                    api_key=OPENROUTER_API_KEY,
-                    base_url="https://openrouter.ai/api/v1",
+                    model="llama-3.3-70b-versatile",
+                    api_key=GROQ_API_KEY,
+                    base_url="https://api.groq.com/openai/v1",
                     temperature=temperature
                 )
                 
@@ -426,11 +460,11 @@ Answer:"""
                     displayed_text += word + " "
                     answer_placeholder.markdown(f"""
                         <div class="assistant-message">
-                            <strong>Assistant:</strong> {displayed_text}
+                            <strong>🤖 Assistant:</strong> {displayed_text}
                         </div>
                     """, unsafe_allow_html=True)
                     import time
-                    time.sleep(0.05)  # Adjust speed here (0.05 = 50ms between words)
+                    time.sleep(0.02)  # Faster streaming (20ms between words)
                 
                 # Add assistant message with sources
                 sources = [result["metadata"].get("text", "") for result in local_results[:3]]
@@ -450,7 +484,7 @@ Answer:"""
                 })
                 
                 st.rerun()
-                
+                    
             except Exception as e:
                 st.error(f"Error generating answer: {str(e)}")
         else:
@@ -465,7 +499,7 @@ st.divider()
 footer_cols = st.columns([1, 1, 1])
 
 with footer_cols[0]:
-    st.metric("📊 API Model", "Llama 3.2 3B", help="OpenRouter LLM")
+    st.metric("📊 API Model", "Llama 3.3 70B", help="Groq LLM")
 
 with footer_cols[1]:
     st.metric("🗄️ Vector Store", "Pinecone", help="Cloud-hosted vector database")
@@ -473,15 +507,43 @@ with footer_cols[1]:
 with footer_cols[2]:
     st.metric("⚙️ Framework", "Streamlit", help="Python app framework")
 
-st.markdown("""
-    <div style="text-align: center; color: #666; margin-top: 2rem; padding: 1.5rem;">
-        <p style="font-size: 1rem; margin-bottom: 0.5rem;">
-            💡 <strong>Powered by</strong> Streamlit | LangChain | Pinecone | OpenRouter | HuggingFace
+# Enhanced Footer Section
+footer_html = """
+<div style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); border-top: 2px solid #3f0f64; margin-top: 2rem; padding: 2rem; border-radius: 12px; text-align: center;">
+    <div style="margin-bottom: 1.5rem;">
+        <p style="font-size: 1.1rem; margin: 0.5rem 0; font-weight: 600; color: #e0e7ff;">
+            💡 <strong>Powered by Intelligence</strong>
         </p>
-        <p style="font-size: 0.85rem; opacity: 0.8;">
-            © 2025 RAG Assistant - LangChain Documentation Search<br>
-            <a href="https://github.com/THENABILMAN" target="_blank">👨‍💻 @THENABILMAN</a> | 
-            <a href="https://github.com/THENABILMAN/THENABILMA_RAG_Agent_LangChain-Documentation" target="_blank">📦 Repository</a>
+        <div style="display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap; margin: 1rem 0; font-size: 0.95rem;">
+            <span style="background: rgba(59, 130, 246, 0.2); padding: 0.5rem 1rem; border-radius: 6px; color: #bfdbfe; border: 1px solid rgba(59, 130, 246, 0.5);">⚡ Streamlit</span>
+            <span style="background: rgba(59, 130, 246, 0.2); padding: 0.5rem 1rem; border-radius: 6px; color: #bfdbfe; border: 1px solid rgba(59, 130, 246, 0.5);">🔗 LangChain</span>
+            <span style="background: rgba(168, 85, 247, 0.2); padding: 0.5rem 1rem; border-radius: 6px; color: #d8b4fe; border: 1px solid rgba(168, 85, 247, 0.5);">📍 Pinecone</span>
+            <span style="background: rgba(168, 85, 247, 0.2); padding: 0.5rem 1rem; border-radius: 6px; color: #d8b4fe; border: 1px solid rgba(168, 85, 247, 0.5);">🚀 OpenRouter</span>
+            <span style="background: rgba(34, 197, 94, 0.2); padding: 0.5rem 1rem; border-radius: 6px; color: #86efac; border: 1px solid rgba(34, 197, 94, 0.5);">🤖 HuggingFace</span>
+        </div>
+    </div>
+    <div style="border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 1.5rem; margin-top: 1.5rem;">
+        <p style="font-size: 1rem; color: #e2e8f0; margin: 0.5rem 0; font-weight: 600;">
+            RAG Assistant - LangChain Documentation Search
+        </p>
+        <p style="font-size: 0.9rem; color: #cbd5e1; margin: 0.5rem 0;">
+            Semantic search powered by AI | Real-time answers from documentation
+        </p>
+        <p style="font-size: 0.85rem; color: #94a3b8; margin-top: 1rem; margin-bottom: 0.5rem;">
+            © 2025 RAG Assistant | Built with ❤️ for developers
+        </p>
+        <div style="display: flex; justify-content: center; gap: 2rem; margin-top: 1rem; font-size: 0.9rem; flex-wrap: wrap;">
+            <a href="https://github.com/THENABILMAN" target="_blank" style="color: #60a5fa; text-decoration: none;">👨‍💻 Creator: @THENABILMAN</a>
+            <span style="color: #475569;">|</span>
+            <a href="https://github.com/THENABILMAN/THENABILMA_RAG_Agent_LangChain-Documentation" target="_blank" style="color: #60a5fa; text-decoration: none;">📦 GitHub Repository</a>
+        </div>
+    </div>
+    <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid rgba(255, 255, 255, 0.1);">
+        <p style="font-size: 0.8rem; color: #64748b; margin: 0;">
+            🔐 Privacy First | ⚡ Fast & Efficient | 🎯 Accurate Results | 🌍 Global Scale
         </p>
     </div>
-""", unsafe_allow_html=True)
+</div>
+"""
+
+st.markdown(footer_html, unsafe_allow_html=True)
