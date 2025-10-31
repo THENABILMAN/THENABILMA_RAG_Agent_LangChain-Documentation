@@ -69,23 +69,23 @@ st.markdown("""
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
     }
     .user-message {
-        background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
+        background: linear-gradient(135deg, #1e3a8a 0%, #3b0764 100%);
         color: #ffffff;
         margin-left: 2rem;
-        border-left: 4px solid #3b82f6;
+        border-left: 4px solid #60a5fa;
     }
     .user-message strong {
         display: block;
         margin-bottom: 0.5rem;
         font-size: 0.9rem;
         opacity: 1;
-        color: #e0e7ff;
+        color: #dbeafe;
     }
     .assistant-message {
-        background: linear-gradient(135deg, #7c2d12 0%, #5a1410 100%);
+        background: linear-gradient(135deg, #2d1b4e 0%, #1e1b4b 100%);
         color: #ffffff;
         margin-right: 2rem;
-        border-left: 4px solid #ea580c;
+        border-left: 4px solid #a855f7;
         line-height: 1.6;
     }
     .assistant-message strong {
@@ -93,7 +93,7 @@ st.markdown("""
         margin-bottom: 0.5rem;
         font-size: 0.9rem;
         opacity: 1;
-        color: #fed7aa;
+        color: #e9d5ff;
     }
     .source-container {
         background: #1e293b;
