@@ -6,10 +6,11 @@ from dotenv import load_dotenv
 import streamlit as st
 
 # LangChain imports
-from langchain_ollama import OllamaEmbeddings, OllamaLLM
+from langchain_ollama import OllamaEmbeddings
 from langchain_community.vectorstores import Chroma
 from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain_core.prompts import PromptTemplate
+from langchain_openai import ChatOpenAI
 
 load_dotenv()
 
@@ -17,6 +18,7 @@ OLLAMA_BASE_URL = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434")
 OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "mxbai-embed-large")
 OLLAMA_LLM_MODEL = os.environ.get("OLLAMA_LLM_MODEL", "llama3.2")
 TAVILY_API_KEY = os.environ.get("TAVILY_API_KEY", "")
+OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY", "")
 
 # Config
 PERSIST_DIR = "chroma_db"
@@ -39,10 +41,16 @@ def load_vectordb():
 
 @st.cache_resource
 def load_llm():
-    """Load the Ollama LLM for answer generation."""
-    llm = OllamaLLM(
-        base_url=OLLAMA_BASE_URL,
-        model=OLLAMA_LLM_MODEL,
+    """Load the LLM from OpenRouter."""
+    if not OPENROUTER_API_KEY:
+        st.error("❌ OPENROUTER_API_KEY not set!")
+        st.info("Add your OpenRouter API key to .env file")
+        st.stop()
+    
+    llm = ChatOpenAI(
+        model="meta-llama/llama-3.2-3b-instruct:free",
+        api_key=OPENROUTER_API_KEY,
+        base_url="https://openrouter.ai/api/v1",
         temperature=0.7
     )
     return llm
@@ -59,10 +67,10 @@ except Exception as e:
 # Load the LLM
 try:
     llm = load_llm()
-    st.success(f"✅ LLM loaded successfully! ({OLLAMA_LLM_MODEL})")
+    st.success("✅ LLM loaded successfully! (OpenRouter - Llama 3.2 3B)")
 except Exception as e:
     st.error(f"❌ Error loading LLM: {e}")
-    st.info("Make sure Ollama is running and the model is available.")
+    st.info("Make sure OPENROUTER_API_KEY is set in .env")
     st.stop()
 
 # Sidebar for settings
