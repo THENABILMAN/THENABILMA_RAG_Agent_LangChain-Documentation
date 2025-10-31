@@ -3,12 +3,11 @@ from pathlib import Path
 from dotenv import load_dotenv
 from langchain_community.document_loaders import TextLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_openai import OpenAIEmbeddings
+from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores import Chroma
 
 load_dotenv()
 
-OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY")
 DOCS_FILE = Path("langchain_docs.txt")
 PERSIST_DIR = "chroma_db"
 CHUNK_SIZE = 600
@@ -32,11 +31,10 @@ def main():
     docs_chunks = text_splitter.split_documents(docs)
     print(f"Created {len(docs_chunks)} document chunks")
 
-    print("Creating embeddings with OpenRouter...")
-    embeddings = OpenAIEmbeddings(
-        api_key=OPENROUTER_API_KEY,
-        base_url="https://openrouter.ai/api/v1",
-        model="openai/text-embedding-3-small"
+    print("Creating embeddings with HuggingFace (free, reliable)...")
+    embeddings = HuggingFaceEmbeddings(
+        model_name="sentence-transformers/all-MiniLM-L6-v2",
+        model_kwargs={"device": "cpu"}
     )
     
     print("Building Chroma vectorstore...")

@@ -11,7 +11,7 @@ from langchain_community.vectorstores import Chroma
 from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain_core.prompts import PromptTemplate
 from langchain_openai import ChatOpenAI
-from langchain_openai import OpenAIEmbeddings
+from langchain_community.embeddings import HuggingFaceEmbeddings
 
 load_dotenv()
 
@@ -33,12 +33,10 @@ st.title("🤖 RAG Agent - LangChain Documentation")
 
 @st.cache_resource
 def load_vectordb():
-    """Load the persisted Chroma vectorstore with OpenRouter embeddings."""
-    # Use OpenAI-compatible embeddings from OpenRouter
-    embeddings = OpenAIEmbeddings(
-        api_key=OPENROUTER_API_KEY,
-        base_url="https://openrouter.ai/api/v1",
-        model="openai/text-embedding-3-small"
+    """Load the persisted Chroma vectorstore with HuggingFace embeddings."""
+    embeddings = HuggingFaceEmbeddings(
+        model_name="sentence-transformers/all-MiniLM-L6-v2",
+        model_kwargs={"device": "cpu"}
     )
     vectordb = Chroma(
         persist_directory=PERSIST_DIR,
@@ -94,18 +92,48 @@ with st.sidebar:
         st.success("✅ Tavily Search Available")
     else:
         st.warning("⚠️ Tavily API key not configured")
+    
+    # App Details Section
+    st.divider()
+    st.subheader("📱 About This App")
+    st.markdown("""
+    **RAG Agent - LangChain Documentation**
+    
+    A powerful retrieval-augmented generation (RAG) application for 
+    querying LangChain documentation with AI-powered answers.
+    
+    **Features:**
+    - 🔍 Semantic search over LangChain docs
+    - 🤖 AI-powered answer generation
+    - 💬 Chat history with full Q&A tracking
+    - 🌐 Web search integration (Tavily)
+    - ⌨️ Enter key support for quick queries
+    - 📊 Real-time processing indicators
+    
+    **Tech Stack:**
+    - LangChain + Chroma Vector DB
+    - OpenRouter LLM (Llama 3.2 3B)
+    - OpenAI Embeddings (via OpenRouter)
+    - Streamlit Framework
+    
+    **Creator:** [@THENABILMAN](https://github.com/THENABILMAN)
+    
+    **Repository:** [GitHub](https://github.com/THENABILMAN/THENABILMA_RAG_Agent_LangChain-Documentation)
+    """)
 
 # Main search interface
 st.subheader("🔍 Search LangChain Documentation")
 
-col1, col2 = st.columns([4, 1])
-with col1:
-    query = st.text_input("Enter your question about LangChain (or press Enter):", key="query_input")
-with col2:
-    search_button = st.button("🔍 Search", use_container_width=True)
+# Use form for Enter key support
+with st.form("search_form", clear_on_submit=False):
+    col1, col2 = st.columns([4, 1])
+    with col1:
+        query = st.text_input("Enter your question about LangChain (or press Enter):", key="query_input")
+    with col2:
+        search_button = st.form_submit_button("🔍 Search", use_container_width=True)
 
 # Trigger search on Enter key or button click
-if query and (search_button):
+if query and search_button:
     try:
         results = []
         
